@@ -1,7 +1,7 @@
 const {
   BaseKonnector,
+  errors,
   requestFactory,
-  signin,
   scrape,
   saveBills,
   log
@@ -14,12 +14,17 @@ const request = requestFactory({
   cheerio: true,
   // If cheerio is activated do not forget to deactivate json parsing (which is activated by
   // default in cozy-konnector-libs
-  json: false,
+  json: true,
   // this allows request-promise to keep cookies between requests
   jar: true
 })
+const pdf = require('pdfjs')
+const { URL } = require('url')
+const html2pdf = require('./html2pdf')
+const moment = require('moment')
+const NBSPACE = '\xa0'
 
-const baseUrl = 'http://books.toscrape.com'
+const baseUrl = 'https://www.just-eat.fr'
 
 module.exports = new BaseKonnector(start)
 
@@ -32,11 +37,10 @@ async function start(fields) {
   log('info', 'Successfully logged in')
   // The BaseKonnector instance expects a Promise as return of the function
   log('info', 'Fetching the list of documents')
-  const $ = await request(`${baseUrl}/index.html`)
+  const $ = await request(`${baseUrl}/chez-moi/Dernieres-commandes`)
   // cheerio (https://cheerio.js.org/) uses the same api as jQuery (http://jquery.com/)
   log('info', 'Parsing list of documents')
   const documents = await parseDocuments($)
-
   // here we use the saveBills function even if what we fetch are not bills, but this is the most
   // common case in connectors
   log('info', 'Saving data to Cozy')
@@ -44,84 +48,93 @@ async function start(fields) {
     // this is a bank identifier which will be used to link bills to bank operations. These
     // identifiers should be at least a word found in the title of a bank operation related to this
     // bill. It is not case sensitive.
-    identifiers: ['books']
+    identifiers: ['justeat']
   })
 }
 
 // this shows authentication using the [signin function](https://github.com/konnectors/libs/blob/master/packages/cozy-konnector-libs/docs/api.md#module_signin)
 // even if this in another domain here, but it works as an example
 function authenticate(username, password) {
-  return signin({
-    url: `http://quotes.toscrape.com/login`,
-    formSelector: 'form',
-    formData: { username, password },
-    // the validate function will check if
-    validate: (statusCode, $) => {
-      // The login in toscrape.com always works excepted when no password is set
-      if ($(`a[href='/logout']`).length === 1) {
-        return true
-      } else {
-        // cozy-konnector-libs has its own logging function which format these logs with colors in
-        // standalone and dev mode and as JSON in production mode
-        log('error', $('.error').text())
-        return false
+  // First request to get the cookie and CSRF token
+  return request(`${baseUrl}/connexion`)
+    .then($ => {
+      // Second request to log in
+      return request({
+        uri: `${baseUrl}/connexion`,
+        method: 'POST',
+        body: {
+          _token: $('[name="csrf-token"]').attr('content'),
+          'do-login': '',
+          'login-email': username,
+          'login-password': password
+        }
+      })
+    })
+    .then(() => {
+      return request({
+        uri: `${baseUrl}/chez-moi/Dernieres-commandes`
+      })
+    })
+    .catch(err => {
+      if (err.statusCode === 401) {
+        throw new Error(errors.LOGIN_FAILED)
       }
-    }
-  })
+    })
 }
 
 // The goal of this function is to parse a html page wrapped by a cheerio instance
 // and return an array of js objects which will be saved to the cozy by saveBills (https://github.com/cozy/cozy-konnector-libs/blob/master/docs/api.md#savebills)
-function parseDocuments($) {
+async function parseDocuments($) {
   // you can find documentation about the scrape function here :
   // https://github.com/konnectors/libs/blob/master/packages/cozy-konnector-libs/docs/api.md#scrape
-  const docs = scrape(
+  const orders = scrape(
     $,
     {
-      title: {
-        sel: 'h3 a',
-        attr: 'title'
-      },
-      amount: {
-        sel: '.price_color',
-        parse: normalizePrice
-      },
-      url: {
-        sel: 'h3 a',
-        attr: 'title',
-        parse: url => `${baseUrl}/${url}`
-      },
       fileurl: {
-        sel: 'img',
-        attr: 'src',
-        parse: src => `${baseUrl}/${src}`
+        sel: '.button.order-history-details',
+        attr: 'href'
       },
-      filename: {
-        sel: 'h3 a',
-        attr: 'title',
-        parse: title => `${title}.jpg`
+      date: {
+        sel: '.restaurant-item-date',
+        parse: d => moment(d, 'DD/MM/YYYY')
+      },
+      price: {
+        sel: '.price'
+      },
+      restaurant: {
+        sel: '.name'
       }
     },
-    'article'
+    '.order.block'
   )
-  return docs.map(doc => ({
-    ...doc,
-    // the saveBills function needs a date field
-    // even if it is a little artificial here (these are not real bills)
-    date: new Date(),
-    currency: '€',
-    vendor: 'template',
-    metadata: {
-      // it can be interesting that we add the date of import. This is not mandatory but may be
-      // usefull for debugging or data migration
-      importDate: new Date(),
-      // document version, usefull for migration after change of document structure
-      version: 1
-    }
-  }))
+  for (let order of orders) {
+    const [amount, currency] = order.price.split(NBSPACE)
+    order.amount = parseFloat(amount.replace(',', '.'))
+    order.currency = currency
+    order.vendor = order.restaurant
+    order.filename =
+      order.date.format('YYYY-MM-DD') + '_' + order.amount + '.pdf'
+    order.date = order.date.toDate()
+    const url = new URL(order.fileurl, baseUrl)
+    delete order.fileurl
+    order.filestream = await billURLToStream(url.toString())
+  }
+  return orders
 }
 
-// convert a price string to a float
-function normalizePrice(price) {
-  return parseFloat(price.trim().replace('£', ''))
+async function billURLToStream(url) {
+  var doc = new pdf.Document()
+  const cell = doc.cell({ paddingBottom: 0.5 * pdf.cm }).text()
+  cell.add('Généré automatiquement par le connecteur JustEat depuis la page ', {
+    font: require('pdfjs/font/Helvetica-Bold'),
+    fontSize: 14
+  })
+  cell.add(url, {
+    link: url,
+    color: '0x0000FF'
+  })
+  const $ = await request(url)
+  html2pdf($, doc, $('.content'), { baseURL: url })
+  doc.end()
+  return doc
 }
