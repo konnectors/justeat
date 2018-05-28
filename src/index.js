@@ -119,7 +119,8 @@ async function parseDocuments($) {
     order.filename =
       order.date.format('YYYY-MM-DD') +
       '_' +
-      order.amount.toString().replace('.', '€') +
+      order.amount +
+      '€' +
       '.pdf'
     order.date = order.date.toDate()
     const url = new URL(order.fileurl, baseUrl)
