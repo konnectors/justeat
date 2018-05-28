@@ -108,12 +108,16 @@ async function parseDocuments($) {
     '.order.block'
   )
   for (let order of orders) {
-    const [amount, currency] = order.price.split(NBSPACE)
+    const amount = order.price.split(NBSPACE)[0]
     order.amount = parseFloat(amount.replace(',', '.'))
-    order.currency = currency
+    order.currency = 'EUR'
     order.vendor = order.restaurant
     order.filename =
-      order.date.format('YYYY-MM-DD') + '_' + order.amount + '.pdf'
+      order.date.format('YYYY-MM-DD') +
+      '_' +
+      order.amount.toString().replace('.', ',') +
+      '€' +
+      '.pdf'
     order.date = order.date.toDate()
     const url = new URL(order.fileurl, baseUrl)
     delete order.fileurl
