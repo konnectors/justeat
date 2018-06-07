@@ -8,7 +8,7 @@
   "source": "git://github.com/konnectors/justeat.git",
   "editor": "Cozy",
   "vendor_link": "https://www.just-eat.fr/",
-  "categories": ["others"],
+  "categories": ["online_services"],
   "fields": {
     "login": {
       "type": "text"
