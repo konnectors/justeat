@@ -51,7 +51,7 @@ async function start(fields) {
     // this is a bank identifier which will be used to link bills to bank operations. These
     // identifiers should be at least a word found in the title of a bank operation related to this
     // bill. It is not case sensitive.
-    identifiers: ['justeat'],
+    identifiers: ['just eat'],
     contentType: 'application/pdf'
   })
 }
