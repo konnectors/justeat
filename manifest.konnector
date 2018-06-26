@@ -1,5 +1,5 @@
 {
-  "version": "1.0.1",
+  "version": "1.0.2",
   "name": "JustEat",
   "type": "konnector",
   "language": "node",
@@ -42,8 +42,8 @@
     }
   },
   "developer": {
-    "name": "Cozy Cloud",
-    "url": "https://cozy.io"
+    "name": "Paul Tran-Van",
+    "url": "https://github.com/Gara64"
   },
   "langs": ["fr", "en"],
   "locales": {
@@ -83,5 +83,6 @@
         }
       }
     }
-  }
+  },
+  "manifest_version": "2"
 }

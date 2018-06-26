@@ -117,11 +117,7 @@ async function parseDocuments($) {
     order.currency = 'EUR'
     order.vendor = order.restaurant
     order.filename =
-      order.date.format('YYYY-MM-DD') +
-      '_' +
-      order.amount +
-      '€' +
-      '.pdf'
+      order.date.format('YYYY-MM-DD') + '_' + order.amount + '€' + '.pdf'
     order.date = order.date.toDate()
     const url = new URL(order.fileurl, baseUrl)
     delete order.fileurl
