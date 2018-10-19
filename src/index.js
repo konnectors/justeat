@@ -9,7 +9,7 @@ const {
   saveBills,
   log
 } = require('cozy-konnector-libs')
-const request = requestFactory({
+let request = requestFactory({
   // the debug mode shows all the details about http request and responses. Very usefull for
   // debugging but very verbose. That is why it is commented out by default
   // debug: true,
@@ -17,7 +17,7 @@ const request = requestFactory({
   cheerio: true,
   // If cheerio is activated do not forget to deactivate json parsing (which is activated by
   // default in cozy-konnector-libs
-  json: true,
+  json: false,
   // this allows request-promise to keep cookies between requests
   jar: true
 })
@@ -58,32 +58,40 @@ async function start(fields) {
 
 // this shows authentication using the [signin function](https://github.com/konnectors/libs/blob/master/packages/cozy-konnector-libs/docs/api.md#module_signin)
 // even if this in another domain here, but it works as an example
-function authenticate(username, password) {
+async function authenticate(username, password) {
   // First request to get the cookie and CSRF token
-  return request(`${baseUrl}/connexion`)
-    .then($ => {
-      // Second request to log in
-      return request({
-        uri: `${baseUrl}/connexion`,
-        method: 'POST',
-        body: {
-          _token: $('[name="csrf-token"]').attr('content'),
-          'do-login': '',
-          'login-email': username,
-          'login-password': password
-        }
-      })
-    })
-    .then(() => {
-      return request({
-        uri: `${baseUrl}/chez-moi/Dernieres-commandes`
-      })
-    })
-    .catch(err => {
-      if (err.statusCode === 401) {
-        throw new Error(errors.LOGIN_FAILED)
+  const $ = await request(`${baseUrl}/connexion`)
+
+  request = requestFactory({
+    cheerio: false,
+    json: true,
+    jar: true
+  })
+  try {
+    await request({
+      uri: `${baseUrl}/connexion`,
+      method: 'POST',
+      body: {
+        _token: $('[name="csrf-token"]').attr('content'),
+        'do-login': '',
+        'login-email': username,
+        'login-password': password
       }
     })
+  } catch (err) {
+    if (err.statusCode === 422) {
+      throw new Error(errors.LOGIN_FAILED)
+    } else throw err
+  }
+  request = requestFactory({
+    cheerio: true,
+    json: false,
+    jar: true
+  })
+
+  return request({
+    uri: `${baseUrl}/chez-moi/Dernieres-commandes`
+  })
 }
 
 // The goal of this function is to parse a html page wrapped by a cheerio instance
