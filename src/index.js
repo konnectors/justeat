@@ -9,16 +9,14 @@ const {
   saveBills,
   log
 } = require('cozy-konnector-libs')
-let request = requestFactory({
-  // the debug mode shows all the details about http request and responses. Very usefull for
-  // debugging but very verbose. That is why it is commented out by default
-  // debug: true,
-  // activates [cheerio](https://cheerio.js.org/) parsing on each page
+const requestHTML = requestFactory({
   cheerio: true,
-  // If cheerio is activated do not forget to deactivate json parsing (which is activated by
-  // default in cozy-konnector-libs
   json: false,
-  // this allows request-promise to keep cookies between requests
+  jar: true
+})
+const requestJSON = requestFactory({
+  cheerio: false,
+  json: true,
   jar: true
 })
 const pdf = require('pdfjs')
@@ -40,7 +38,7 @@ async function start(fields) {
   log('info', 'Successfully logged in')
   // The BaseKonnector instance expects a Promise as return of the function
   log('info', 'Fetching the list of documents')
-  const $ = await request(`${baseUrl}/chez-moi/Dernieres-commandes`)
+  const $ = await requestHTML(`${baseUrl}/chez-moi/Dernieres-commandes`)
   // cheerio (https://cheerio.js.org/) uses the same api as jQuery (http://jquery.com/)
   log('info', 'Parsing list of documents')
   const documents = await parseDocuments($)
@@ -60,15 +58,10 @@ async function start(fields) {
 // even if this in another domain here, but it works as an example
 async function authenticate(username, password) {
   // First request to get the cookie and CSRF token
-  const $ = await request(`${baseUrl}/connexion`)
+  const $ = await requestHTML(`${baseUrl}/connexion`)
 
-  request = requestFactory({
-    cheerio: false,
-    json: true,
-    jar: true
-  })
   try {
-    await request({
+    await requestJSON({
       uri: `${baseUrl}/connexion`,
       method: 'POST',
       body: {
@@ -83,13 +76,8 @@ async function authenticate(username, password) {
       throw new Error(errors.LOGIN_FAILED)
     } else throw err
   }
-  request = requestFactory({
-    cheerio: true,
-    json: false,
-    jar: true
-  })
 
-  return request({
+  return requestHTML({
     uri: `${baseUrl}/chez-moi/Dernieres-commandes`
   })
 }
@@ -145,7 +133,7 @@ async function billURLToStream(url) {
     link: url,
     color: '0x0000FF'
   })
-  const $ = await request(url)
+  const $ = await requestHTML(url)
   html2pdf($, doc, $('.content'), { baseURL: url })
   doc.end()
   return doc
