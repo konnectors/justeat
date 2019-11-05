@@ -4,7 +4,10 @@ node_js:
 env:
   global:
   - DEPLOY_REPOSITORY="git@github.com:konnectors/justeat.git"
+  # REGISTRY_TOKEN(editor=cozy, app=justeat)
   - secure: nitKlPOjR+nDUPvHktAfbWXzcujiwF8eTNG7LBpykag6DcVbDmi9Skahze6pctvSa3o62UsZmNM3qovyAbkFu9dF1X19jK3IQHLug91u0h74npgpGaocR/4bWpLyacfcNFVLPCGMv2bwh8oN91LvlaHLGpSIkUDXuo3QxRFSjnUuoIvUKt5pGTf0vMP49Vy21l+0r4eDaVeYdcHW2IhzGKYPfGarhPMvYq4I1QVLrFtIhZIZbOGkqmAPKAtwICwR5JKBWEuGDb3DWXIhHahUxPPAAPT4BlVKeK5CJScExnBWzV2XWDcFQB+lxu6XpBOxAQdAMn3TxO5JC/Ek4Sst9iWYCc1Zec4Qe3KVou1Yn9u8Rpckc+OeyMd0oqhP5EA3OqepHkRV+Gf9lqKe1lxipPTSm67Ic+r9BtF/baAfGJzCFzYrdjap1aGMnkcDD6skNeu2mfYVaoRMVLz4Q+c4HUjdwTZtxAsM+lbNBbyRVi9vkepNCRRRK9RcFILsG5VC7gQmPQJF98q/rV+ZQULHrrLZtaR9X+I3R5aHJBkx3vTnnWYiACySBuM0OBOpoiiwr2Rv/MJFxhhO6ybh9zOPrRr5HLug9rre35y+9ACXaJi0V/pfHsxAxaXcEtihk5qtvNgFNvhrpnjQwXAeGsMNPoVtXpOmeUkpkqTBtshcRwg=
+  # MATTERMOST_HOOK_URL
+  - secure: pnoaQu3nLOQVsWnmW85xbCv9QIWFUAywDYmX59NxpHEtcnlV77SCLjcu0OYMr3u2mgqjllPos+RHeKJayzq0qgXxuvBL8oAE+qyMLunKU60ZcHT7gXPZEBS85t5fYB7ZuXfsuBXUvBQE4OgIiCIePVQPKlc255++NA2FIts0lcDyFiDxFygKTxI4zu5ZQcAM7AW1nEAQUqatFdwd7bNPF2Dxxj1679Bm0jkyTWdQ6EpavNKzf/mFhz/UEx9uPBuxPza38GGzXZ0Ayu82uQWqENKr8DlXKWVmfaVR7JMyvZy++vg6HD9bBvn66Y1Pz31piVMr7FYgssLEkJp0E2JMWO0qGVVycw6xUSnXDCsQQaSmoV9vXNQdwLoPI2KvoyCmVualuYO0bUYZ3MJoIkRgV+WqL2wnlSO4YK6QjfADER5+XMsxnWMCqsR4X0JCZQAF+kDE7U3ZQg0Ba14Wq/L4NWfHFqWVFjvQ6A6SoPi2EQNlfweMFDt7AAWAXCLtUyZsPZK9z2wBNNzWcGjUKhSpu0ms/+gEhe019SruoJBwPhEXEtYW52gHB9a/0PLnT4z4ILoxY91fOqjjNajJvxJawTdiCGTWsa2VkHUHBeXRcRI3Vmlne+u7xbHvJBp5KRuNOxcoyuxPbwvHMQ9z1m48OVqxeL6AfmUMBMgdR1u9+lk=
 cache:
   yarn: true
   directories:
@@ -16,7 +19,6 @@ branches:
 script:
 - yarn lint
 - yarn build
-- yarn run check
 deploy:
 - provider: script
   skip-cleanup: true
@@ -25,7 +27,7 @@ deploy:
     branch: master
 - provider: script
   skip-cleanup: true
-  script: DEPLOY_BRANCH=build yarn deploy && yarn cozyPublish
+  script: DEPLOY_BRANCH=build yarn deploy && yarn cozyPublish --postpublish mattermost
   on:
     tags: true
 before_install:
