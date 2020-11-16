@@ -1,11 +1,11 @@
 {
-  "version": "1.2.0",
+  "version": "1.1.2",
   "name": "JustEat",
   "type": "konnector",
   "language": "node",
   "icon": "icon.svg",
   "slug": "justeat",
-  "source": "git@github.com:konnectors/justeat.git",
+  "source": "git://github.com/konnectors/justeat.git",
   "editor": "Cozy",
   "vendor_link": "https://www.just-eat.fr/",
   "categories": [
