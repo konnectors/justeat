@@ -133,7 +133,7 @@ module.exports = function htmlToPDF($, frag, $parent, opts) {
           text = null
           htmlToPDF(
             $,
-            frag, //.cell({ paddingTop: 1 * pdf.cm }),
+            frag, // .cell({ paddingTop: 1 * pdf.cm }),
             $el,
             Object.assign({}, opts, {
               txtOpts: {
