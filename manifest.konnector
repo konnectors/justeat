@@ -9,7 +9,7 @@
   "editor": "Cozy",
   "vendor_link": "https://www.just-eat.fr/",
   "categories": [
-    "online_services"
+    "others"
   ],
   "fields": {
     "login": {
